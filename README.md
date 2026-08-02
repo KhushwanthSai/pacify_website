@@ -1,166 +1,163 @@
-# Placify AI – AI-Powered Placement Readiness Platform
+# Placify AI — AI-Powered Placement Readiness Platform
 
-## Overview
+Placify AI helps students evaluate their employability and improve their placement
+preparation. It analyzes academic performance, technical skills, projects,
+certifications, and resumes to generate a readiness score, company fit estimates,
+and a personalized improvement roadmap.
 
-Placify AI is an intelligent career guidance and placement readiness platform designed to help students evaluate their employability and improve their placement preparation. The platform analyzes academic performance, technical skills, projects, certifications, resumes, and professional profiles to generate personalized career insights.
-
-The system provides a Career Readiness Index, Company Fit Scores, Competency Gap Assessment, learning recommendations, and placement preparation guidance.
-
----
-
-## Problem Statement
-
-Many students are uncertain about their placement readiness and often struggle to identify the skills and competencies required by different companies. Placify AI addresses this challenge by providing a structured assessment of student profiles and offering actionable recommendations for improvement.
-
----
-
-## Objectives
-
-* Assess placement readiness using AI-driven analysis.
-* Generate company-specific fit scores.
-* Identify skill and competency gaps.
-* Provide personalized learning recommendations.
-* Improve resume quality through automated analysis.
-* Support students in placement preparation.
+> Scores and recommendations are estimates for self-assessment and guidance.
+> They do not guarantee actual recruitment outcomes.
 
 ---
 
 ## Features
 
-### Career Readiness Index
-
-Generates an overall readiness score based on profile analysis.
-
-### Company Fit Score
-
-Provides estimated compatibility scores for different companies based on skills, academics, projects, and certifications.
-
-### Competency Gap Assessment
-
-Identifies missing technical and professional skills.
-
-### Resume Analysis
-
-Evaluates resume content and extracts relevant information.
-
-### Personalized Learning Roadmap
-
-Suggests areas for improvement and learning resources.
-
-### Career Recommendations
-
-Provides recommendations based on profile strengths and interests.
+| Feature                    | What it does                                                       |
+| -------------------------- | ------------------------------------------------------------------ |
+| **Career Readiness Index** | Overall readiness score derived from your full profile             |
+| **Company Fit Score**      | Estimated compatibility with Tier 1, Tier 2, and service companies |
+| **Skill Gap Map**          | Missing technical and professional skills, ranked by severity      |
+| **Resume Analysis**        | Resume and ATS scoring against your uploaded file                  |
+| **Learning Roadmaps**      | Suggested focus areas based on your weakest axes                   |
+| **AI Coach**               | Guidance chat (currently scripted demo responses)                  |
 
 ---
 
-## Technology Stack
+## Tech Stack
 
-### Frontend
-
-* React.js
-* Tailwind CSS
-* Framer Motion
-* React Dropzone
-* Recharts
-
-### Backend
-
-* Node.js
-* Express.js
-
-### Database
-
-* MongoDB
-
-### AI & Machine Learning
-
-* OpenAI API / Gemini API
-* Placement Readiness Prediction
-* Recommendation Engine
-
-### Authentication
-
-* JWT Authentication
-
-### File Handling
-
-* Multer
+- **Framework** — [TanStack Start](https://tanstack.com/start) (full-stack React with SSR) + TanStack Router
+- **UI** — React 19, Tailwind CSS v4, shadcn/ui (Radix primitives), Recharts, Lucide icons
+- **Backend** — TanStack server functions, deployed as a Nitro serverless function
+- **Database & Auth** — Supabase (Postgres, row-level security, storage, email + Google OAuth)
+- **AI** — Google Gemini (`gemini-2.5-flash`) via the Generative Language API
+- **Build & Hosting** — Vite 8, Nitro (`vercel` preset), Vercel
 
 ---
 
-## Dataset
+## Getting Started
 
-A custom placement dataset was generated using realistic placement-related parameters including:
+### 1. Prerequisites
 
-* CGPA
-* DSA Score
-* Aptitude Score
-* Communication Score
-* Projects Count
-* Certifications Count
-* Internship Experience
-* Hackathon Participation
-* Leadership Experience
-* Technical Skills Count
+- Node.js 20 or newer
+- A [Supabase](https://supabase.com) project (free tier is fine)
+- Optionally, a [Google AI Studio](https://aistudio.google.com/apikey) key for real AI analysis
 
-The dataset was self-generated specifically for this project.
+### 2. Install
+
+```bash
+npm install
+```
+
+### 3. Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Fill in the values from your Supabase dashboard (**Project Settings → API**):
+
+| Variable                        | Where it's used | Notes                                                        |
+| ------------------------------- | --------------- | ------------------------------------------------------------ |
+| `VITE_SUPABASE_URL`             | Browser         | Project URL                                                  |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Browser         | `anon` public key                                            |
+| `SUPABASE_URL`                  | Server          | Same project URL                                             |
+| `SUPABASE_PUBLISHABLE_KEY`      | Server          | Same `anon` key                                              |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Server          | **Secret** — bypasses RLS, never expose to the browser       |
+| `GEMINI_API_KEY`                | Server          | Optional; without it the analysis returns a neutral baseline |
+
+### 4. Set up the database
+
+Apply the migrations in `supabase/migrations/` to your project — either with the
+Supabase CLI (`supabase db push`) or by pasting each file into the SQL Editor in
+order. They create the `profiles`, `analyses`, and `resumes` tables, the resume
+storage bucket, and the row-level security policies that scope every row to its
+owner.
+
+### 5. Run
+
+```bash
+npm run dev
+```
+
+The app runs at http://localhost:5173.
 
 ---
 
-## System Architecture
+## Deploying to Vercel
 
-Student Profile
-↓
-Resume Analysis
-↓
-AI Processing Engine
-↓
-Career Readiness Index
-↓
-Company Fit Analysis
-↓
-Competency Gap Assessment
-↓
-Recommendations & Dashboard
+1. Push this repository to GitHub.
+2. In Vercel, **Add New → Project** and import the repo. Leave the build settings
+   at their defaults — Nitro's `vercel` preset writes Vercel's Build Output API
+   tree to `.vercel/output`, which Vercel detects automatically.
+3. Under **Settings → Environment Variables**, add every variable from
+   `.env.example` and redeploy.
+4. Back in Supabase, add your Vercel URL under **Authentication → URL
+   Configuration** (both Site URL and Redirect URLs), otherwise sign-in
+   redirects will fail.
+
+### Optional: Google sign-in
+
+Email and password sign-in works as soon as Supabase is connected. For the
+"Continue with Google" button, enable the Google provider under
+**Authentication → Providers** in Supabase and add your OAuth credentials. Until
+then the button shows a clear message rather than failing silently.
 
 ---
 
-## Results
+## Scripts
 
-The platform provides:
+| Command           | Description                          |
+| ----------------- | ------------------------------------ |
+| `npm run dev`     | Start the dev server                 |
+| `npm run build`   | Production build to `.vercel/output` |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint`    | Run ESLint                           |
+| `npm run format`  | Format with Prettier                 |
 
-* Career Readiness Index
-* Company Fit Scores
-* Resume Insights
-* Competency Gap Analysis
-* Personalized Learning Roadmaps
-* Placement Preparation Suggestions
+---
+
+## Project Structure
+
+```
+src/
+  routes/               File-based routes (TanStack Router)
+    index.tsx           Landing page
+    auth.tsx            Sign in / sign up
+    _authenticated/     Auth-guarded dashboard routes
+  components/ui/        shadcn/ui components
+  integrations/
+    supabase/           Client, admin client, auth middleware, generated types
+  lib/
+    analyze.functions.ts  Server functions for AI analysis
+    mock-data.ts          Demo data for the landing page
+supabase/migrations/    Database schema and RLS policies
+```
 
 ---
 
 ## Limitations
 
-The generated scores and recommendations are estimates intended for self-assessment and guidance purposes. They do not guarantee actual recruitment outcomes.
+The generated scores and recommendations are estimates intended for
+self-assessment and guidance purposes. They do not guarantee actual recruitment
+outcomes. The AI Coach currently returns scripted responses rather than
+model-generated ones.
 
 ---
 
 ## Future Enhancements
 
-* LinkedIn Profile Analysis
-* GitHub Profile Analysis
-* AI Career Coach
-* Mock Interview Generator
-* Resume Builder
-* Cover Letter Generator
-* Placement Trend Analytics
-* Company-Specific Preparation Modules
+- LinkedIn and GitHub profile analysis
+- Live AI career coach
+- Mock interview generator
+- Resume and cover letter builder
+- Placement trend analytics
+- Company-specific preparation modules
 
 ---
 
 ## Author
 
-Charishma Sai Kurakula
+**Charishma Sai Kurakula**
 
-One-Month Internship & Training Program on AI-Enabled Next-Generation Connectivity (Wireless & IoT)
-
-GITAM University
+One-Month Internship & Training Program on AI-Enabled Next-Generation
+Connectivity (Wireless & IoT) — GITAM University
