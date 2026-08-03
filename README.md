@@ -62,18 +62,29 @@ Fill in the values from your Supabase dashboard (**Project Settings → API**):
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Browser         | `anon` public key                                            |
 | `SUPABASE_URL`                  | Server          | Same project URL                                             |
 | `SUPABASE_PUBLISHABLE_KEY`      | Server          | Same `anon` key                                              |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Server          | **Secret** — bypasses RLS, never expose to the browser       |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Server          | Optional; unused today. **Secret** — bypasses RLS if set     |
 | `GEMINI_API_KEY`                | Server          | Optional; without it the analysis returns a neutral baseline |
 
 ### 4. Set up the database
 
-Apply the migrations in `supabase/migrations/` to your project — either with the
-Supabase CLI (`supabase db push`) or by pasting each file into the SQL Editor in
-order. They create the `profiles`, `analyses`, and `resumes` tables, the resume
-storage bucket, and the row-level security policies that scope every row to its
-owner.
+Paste `supabase/setup.sql` into the Supabase **SQL Editor** and run it. It
+creates the `profiles`, `analyses`, and `resumes` tables, the row-level security
+policies that scope every row to its owner, the signup trigger, and the private
+`resumes` storage bucket.
 
-### 5. Run
+(It is the files in `supabase/migrations/` combined in order, plus creation of
+the storage bucket the migrations reference but never create. If you prefer the
+CLI, `supabase db push` applies the migrations — then create the `resumes`
+bucket yourself.)
+
+### 5. Enable email sign-in
+
+In the Supabase dashboard, under **Authentication → Sign In / Providers →
+Email**, make sure the **Email** provider is switched **on**. For local testing,
+also turn **Confirm email** off inside that card — otherwise every sign-up
+requires clicking a link in an email before the account can log in.
+
+### 6. Run
 
 ```bash
 npm run dev
