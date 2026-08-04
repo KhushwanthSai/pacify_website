@@ -65,5 +65,5 @@ export const DEFAULT_SETTINGS: Omit<AppSettings, "id" | "updated_at"> = {
   allow_signups: true,
   maintenance_mode: false,
   ai_enabled: true,
-  ai_model: "gemini-2.5-flash",
+  ai_model: "gemini-flash-latest",
 };

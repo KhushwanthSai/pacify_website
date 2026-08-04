@@ -29,7 +29,7 @@ and a personalized improvement roadmap.
 - **UI** — React 19, Tailwind CSS v4, shadcn/ui (Radix primitives), Recharts, Lucide icons
 - **Backend** — TanStack server functions, deployed as a Nitro serverless function
 - **Database & Auth** — Supabase (Postgres, row-level security, storage, email + Google OAuth)
-- **AI** — Google Gemini (`gemini-2.5-flash`) via the Generative Language API
+- **AI** — Google Gemini (`gemini-flash-latest`) via the Generative Language API
 - **Build & Hosting** — Vite 8, Nitro (`vercel` preset), Vercel
 
 ---

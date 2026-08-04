@@ -142,7 +142,7 @@ function SettingsPage() {
             label="Model"
             value={form.ai_model}
             onChange={(v) => setForm({ ...form, ai_model: v })}
-            hint="Gemini model id, e.g. gemini-2.5-flash."
+            hint="Gemini model id. Use gemini-flash-latest unless you have a reason not to — pinned versions get retired."
           />
         </Card>
 

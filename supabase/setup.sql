@@ -134,7 +134,7 @@ CREATE TABLE IF NOT EXISTS public.app_settings (
   allow_signups BOOLEAN NOT NULL DEFAULT true,
   maintenance_mode BOOLEAN NOT NULL DEFAULT false,
   ai_enabled BOOLEAN NOT NULL DEFAULT true,
-  ai_model TEXT NOT NULL DEFAULT 'gemini-2.5-flash',
+  ai_model TEXT NOT NULL DEFAULT 'gemini-flash-latest',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

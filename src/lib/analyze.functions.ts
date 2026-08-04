@@ -23,7 +23,10 @@ type AIResult = {
   radar: { axis: string; value: number }[];
 };
 
-const AI_MODEL = "gemini-2.5-flash";
+// Alias that tracks the current Flash model. Pinned versions get retired —
+// `gemini-2.5-flash` is already rejected for newly created API keys, and
+// `gemini-2.0-flash` has a free-tier quota of zero.
+const AI_MODEL = "gemini-flash-latest";
 
 const SYSTEM = `You are Placify AI, a placement readiness analyst for university students.
 Given a student profile, return a strict JSON object scoring them and estimating Company Fit Scores for hiring at top tech companies.
@@ -118,6 +121,72 @@ async function readResume(
   } catch {
     return { kind: "unreadable", reason: "the file could not be read" };
   }
+}
+
+/* ── Response sanitisers ──────────────────────────────────────────────────
+ * The model returns free-form JSON. These drop anything malformed so only
+ * well-shaped data reaches the database and the charts.
+ * ─────────────────────────────────────────────────────────────────────── */
+
+const SEVERITIES = ["critical", "high", "medium"] as const;
+const TIERS = ["Tier 1", "Tier 2", "Service"] as const;
+const RADAR_AXES = [
+  "DSA",
+  "Web Dev",
+  "Systems",
+  "DevOps",
+  "AI / ML",
+  "Comm.",
+] as const;
+
+function score(v: unknown): number {
+  const n = typeof v === "number" ? v : Number(v);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+function stringList(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter((x): x is string => typeof x === "string" && x.length > 0);
+}
+
+function sanitizeSkillGaps(v: unknown): AIResult["skill_gaps"] {
+  if (!Array.isArray(v)) return [];
+  return v.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const { skill, severity } = item as Record<string, unknown>;
+    if (typeof skill !== "string" || !skill) return [];
+    const sev = SEVERITIES.includes(severity as (typeof SEVERITIES)[number])
+      ? (severity as (typeof SEVERITIES)[number])
+      : "medium";
+    return [{ skill, severity: sev }];
+  });
+}
+
+function sanitizeCompanyFit(v: unknown): AIResult["company_fit"] {
+  if (!Array.isArray(v)) return [];
+  return v.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const { name, score: s, tier } = item as Record<string, unknown>;
+    if (typeof name !== "string" || !name) return [];
+    const t = TIERS.includes(tier as (typeof TIERS)[number])
+      ? (tier as (typeof TIERS)[number])
+      : "Service";
+    return [{ name, score: score(s), tier: t }];
+  });
+}
+
+function sanitizeRadar(v: unknown): AIResult["radar"] {
+  const byAxis = new Map<string, number>();
+  if (Array.isArray(v)) {
+    for (const item of v) {
+      if (!item || typeof item !== "object") continue;
+      const { axis, value } = item as Record<string, unknown>;
+      if (typeof axis === "string") byAxis.set(axis, score(value));
+    }
+  }
+  // Always return all six axes so the radar chart keeps its shape.
+  return RADAR_AXES.map((axis) => ({ axis, value: byAxis.get(axis) ?? 0 }));
 }
 
 /**
@@ -232,24 +301,23 @@ export const analyzeProfile = createServerFn({ method: "POST" })
       }
     }
 
-    const clamp = (n: unknown) => {
-      const v = typeof n === "number" ? n : Number(n);
-      if (!Number.isFinite(v)) return 0;
-      return Math.max(0, Math.min(100, Math.round(v)));
-    };
-    result.readiness_score = clamp(result.readiness_score);
-    result.resume_score = clamp(result.resume_score);
-    result.ats_score = clamp(result.ats_score);
-    result.technical_score = clamp(result.technical_score);
-    result.communication_score = clamp(result.communication_score);
-    result.github_score = clamp(result.github_score);
-    result.linkedin_score = clamp(result.linkedin_score);
-    result.strengths = result.strengths ?? [];
-    result.weaknesses = result.weaknesses ?? [];
-    result.skill_gaps = result.skill_gaps ?? [];
-    result.company_fit = result.company_fit ?? [];
-    result.radar = result.radar ?? [];
-    result.summary = result.summary ?? "";
+    result.readiness_score = score(result.readiness_score);
+    result.resume_score = score(result.resume_score);
+    result.ats_score = score(result.ats_score);
+    result.technical_score = score(result.technical_score);
+    result.communication_score = score(result.communication_score);
+    result.github_score = score(result.github_score);
+    result.linkedin_score = score(result.linkedin_score);
+
+    // The model is free-form JSON, not a guaranteed schema. Anything that does
+    // not match the expected shape is dropped here — otherwise a malformed
+    // array is written to the database and the dashboard crashes reading it.
+    result.strengths = stringList(result.strengths);
+    result.weaknesses = stringList(result.weaknesses);
+    result.skill_gaps = sanitizeSkillGaps(result.skill_gaps);
+    result.company_fit = sanitizeCompanyFit(result.company_fit);
+    result.radar = sanitizeRadar(result.radar);
+    result.summary = typeof result.summary === "string" ? result.summary : "";
 
     const { data: saved, error } = await supabase
       .from("analyses")
