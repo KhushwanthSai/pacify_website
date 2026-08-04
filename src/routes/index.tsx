@@ -13,6 +13,9 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { COMPANY_FIT } from "@/lib/mock-data";
+import { ReadinessSimulator } from "@/components/readiness-simulator";
+import { useReveal, revealClass, useCountUp } from "@/lib/motion";
+import { useState } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -130,15 +133,33 @@ function Hero() {
           Predictions are AI-generated estimates based on your profile signal —
           not actual hiring guarantees.
         </p>
+
+        <ReadinessSimulator />
       </div>
     </section>
   );
 }
 
+const PREVIEW_TABS = [
+  "Readiness Score",
+  "Skill Gap Map",
+  "Company Fit",
+  "AI Coach",
+] as const;
+
+type PreviewTab = (typeof PREVIEW_TABS)[number];
+
 function DashboardPreview() {
   const topCompanies = COMPANY_FIT.slice(0, 6);
+  const [tab, setTab] = useState<PreviewTab>("Readiness Score");
+  const { ref, shown } = useReveal<HTMLElement>();
+
   return (
-    <section id="preview" className="max-w-7xl mx-auto px-6 pb-32">
+    <section
+      ref={ref}
+      id="preview"
+      className={`max-w-7xl mx-auto px-6 pb-32 ${revealClass(shown)}`}
+    >
       <div className="bg-surface rounded-2xl border border-border-subtle overflow-hidden shadow-2xl shadow-black/40">
         <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[600px]">
           <aside className="lg:col-span-3 border-b lg:border-b-0 lg:border-r border-border-subtle p-6 bg-black/20">
@@ -146,10 +167,15 @@ function DashboardPreview() {
               Analysis Engine
             </p>
             <div className="space-y-1 mb-6">
-              <PreviewNav active>Readiness Score</PreviewNav>
-              <PreviewNav>Skill Gap Map</PreviewNav>
-              <PreviewNav>Company Fit</PreviewNav>
-              <PreviewNav>AI Coach</PreviewNav>
+              {PREVIEW_TABS.map((t) => (
+                <PreviewNav
+                  key={t}
+                  active={tab === t}
+                  onClick={() => setTab(t)}
+                >
+                  {t}
+                </PreviewNav>
+              ))}
             </div>
             <div className="aspect-square rounded-xl bg-linear-to-br from-brand-primary/30 via-brand-secondary/20 to-brand-accent/20 border border-white/5 grid place-items-center mb-4">
               <Target className="size-10 text-brand-accent" />
@@ -163,97 +189,7 @@ function DashboardPreview() {
           </aside>
 
           <div className="lg:col-span-9 p-8 bg-linear-to-b from-zinc-900/30 to-transparent">
-            <div className="flex flex-wrap justify-between items-end gap-4 mb-10">
-              <div>
-                <h3 className="text-3xl font-display font-bold mb-2">
-                  Placement Forecast
-                </h3>
-                <p className="text-zinc-500">
-                  Based on your current stack and contribution history.
-                </p>
-              </div>
-              <div className="text-right">
-                <span className="text-5xl font-black text-white">
-                  84<span className="text-zinc-600">/100</span>
-                </span>
-                <p className="text-xs font-bold text-zinc-400 uppercase tracking-tighter mt-1">
-                  Aggregate Readiness
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-              <div className="space-y-5">
-                {topCompanies.map((c, i) => (
-                  <div key={c.name}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-medium">{c.name}</span>
-                      <span
-                        className={`text-sm font-bold ${i % 3 === 0 ? "text-brand-accent" : i % 3 === 1 ? "text-brand-primary" : "text-brand-secondary"}`}
-                      >
-                        {c.score}%
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${i % 3 === 0 ? "bg-brand-accent" : i % 3 === 1 ? "bg-brand-primary" : "bg-brand-secondary"}`}
-                        style={{ width: `${c.score}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="bg-zinc-900/40 border border-border-subtle p-6 rounded-xl">
-                <h4 className="text-sm font-bold mb-4 flex items-center gap-2">
-                  <div className="size-1.5 bg-amber-400 rounded-full animate-pulse" />
-                  Critical Skill Gaps
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {["SYSTEM DESIGN", "KUBERNETES", "AWS"].map((s) => (
-                    <span
-                      key={s}
-                      className="px-3 py-1 bg-red-400/10 border border-red-400/20 text-red-400 text-[10px] font-bold rounded-full"
-                    >
-                      {s}
-                    </span>
-                  ))}
-                  {["REDIS", "DOCKER"].map((s) => (
-                    <span
-                      key={s}
-                      className="px-3 py-1 bg-zinc-800 border border-zinc-700 text-zinc-400 text-[10px] font-bold rounded-full"
-                    >
-                      {s}
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-6 p-3 bg-zinc-950/50 rounded-lg">
-                  <p className="text-xs text-zinc-500 italic">
-                    AI COACH: "Your GitHub shows weak cloud orchestration
-                    presence. Focus on Docker/K8s to unlock Tier-1 roles."
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { l: "ATS Score", v: "92" },
-                { l: "Comm Score", v: "78" },
-                { l: "LeetCode", v: "Top 8%" },
-                { l: "Project IQ", v: "High" },
-              ].map((s) => (
-                <div
-                  key={s.l}
-                  className="p-4 bg-zinc-900/50 border border-border-subtle rounded-xl"
-                >
-                  <p className="text-xs font-medium text-zinc-500 mb-1">
-                    {s.l}
-                  </p>
-                  <p className="text-xl font-bold">{s.v}</p>
-                </div>
-              ))}
-            </div>
+            <PreviewPanel key={tab} tab={tab} topCompanies={topCompanies} />
           </div>
         </div>
       </div>
@@ -265,39 +201,294 @@ function DashboardPreview() {
   );
 }
 
+/** Right-hand pane of the demo. Switching tabs re-mounts it, so bars re-fill. */
+function PreviewPanel({
+  tab,
+  topCompanies,
+}: {
+  tab: PreviewTab;
+  topCompanies: typeof COMPANY_FIT;
+}) {
+  const score = useCountUp(84, 900);
+
+  if (tab === "Skill Gap Map") {
+    const gaps = [
+      { skill: "System Design", you: 28, target: 75 },
+      { skill: "Kubernetes", you: 20, target: 60 },
+      { skill: "AWS", you: 35, target: 70 },
+      { skill: "DSA", you: 78, target: 88 },
+      { skill: "Web Dev", you: 88, target: 70 },
+    ];
+    return (
+      <PanelShell
+        title="Skill Gap Map"
+        subtitle="Where you sit against the Tier-1 hiring bar."
+      >
+        <div className="space-y-5">
+          {gaps.map((g) => {
+            const met = g.you >= g.target;
+            return (
+              <div key={g.skill}>
+                <div className="flex justify-between text-sm mb-1.5">
+                  <span className="font-medium">{g.skill}</span>
+                  <span className={met ? "text-emerald-400" : "text-zinc-400"}>
+                    {g.you} <span className="text-zinc-600">/ {g.target}</span>
+                  </span>
+                </div>
+                <div className="relative h-2 bg-zinc-800 rounded-full overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 w-px bg-zinc-500"
+                    style={{ left: `${g.target}%` }}
+                  />
+                  <div
+                    className={`h-full rounded-full transition-[width] duration-1000 ease-out motion-reduce:transition-none ${met ? "bg-emerald-400" : "bg-brand-primary"}`}
+                    style={{ width: `${g.you}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </PanelShell>
+    );
+  }
+
+  if (tab === "Company Fit") {
+    return (
+      <PanelShell
+        title="Company Fit"
+        subtitle="Estimated alignment with each hiring bar."
+      >
+        <div className="grid sm:grid-cols-2 gap-4">
+          {COMPANY_FIT.slice(0, 8).map((c) => (
+            <div
+              key={c.name}
+              className="p-4 rounded-xl bg-zinc-900/40 border border-border-subtle hover:border-brand-primary/40 transition-colors"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">{c.name}</span>
+                <span className="text-sm font-bold tabular-nums">
+                  {c.score}%
+                </span>
+              </div>
+              <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-linear-to-r from-brand-primary to-brand-accent transition-[width] duration-1000 ease-out motion-reduce:transition-none"
+                  style={{ width: `${c.score}%` }}
+                />
+              </div>
+              <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
+                {c.tier}
+              </p>
+            </div>
+          ))}
+        </div>
+      </PanelShell>
+    );
+  }
+
+  if (tab === "AI Coach") {
+    const thread = [
+      {
+        from: "you",
+        text: "What should I fix before Amazon applications open?",
+      },
+      {
+        from: "ai",
+        text: "Your DSA is strong enough. The gap is systems — you have no distributed project and no cloud deployment. That is what the loop tests after round two.",
+      },
+      { from: "you", text: "How long would that take?" },
+      {
+        from: "ai",
+        text: "Six weeks. Deploy one existing project to AWS with Docker, then write up the scaling decisions. That converts a listed skill into evidence.",
+      },
+    ];
+    return (
+      <PanelShell
+        title="AI Coach"
+        subtitle="Guidance grounded in your own gaps."
+      >
+        <div className="space-y-3">
+          {thread.map((m, i) => (
+            <div
+              key={i}
+              className={`flex ${m.from === "you" ? "justify-end" : "justify-start"}`}
+            >
+              <p
+                className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                  m.from === "you"
+                    ? "bg-brand-primary text-white rounded-br-sm"
+                    : "bg-zinc-900/60 border border-border-subtle text-zinc-300 rounded-bl-sm"
+                }`}
+              >
+                {m.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      </PanelShell>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex flex-wrap justify-between items-end gap-4 mb-10">
+        <div>
+          <h3 className="text-3xl font-display font-bold mb-2">
+            Placement Forecast
+          </h3>
+          <p className="text-zinc-500">
+            Based on your current stack and contribution history.
+          </p>
+        </div>
+        <div className="text-right">
+          <span className="text-5xl font-black text-white tabular-nums">
+            {score}
+            <span className="text-zinc-600">/100</span>
+          </span>
+          <p className="text-xs font-bold text-zinc-400 uppercase tracking-tighter mt-1">
+            Aggregate Readiness
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-5 mb-12">
+        {topCompanies.map((c, i) => (
+          <div key={c.name}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-sm font-medium">{c.name}</span>
+              <span
+                className={`text-sm font-bold tabular-nums ${i % 3 === 0 ? "text-brand-accent" : i % 3 === 1 ? "text-brand-primary" : "text-brand-secondary"}`}
+              >
+                {c.score}%
+              </span>
+            </div>
+            <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-[width] duration-1000 ease-out motion-reduce:transition-none ${i % 3 === 0 ? "bg-brand-accent" : i % 3 === 1 ? "bg-brand-primary" : "bg-brand-secondary"}`}
+                style={{ width: `${c.score}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { l: "ATS Score", v: "92" },
+          { l: "Comm Score", v: "78" },
+          { l: "LeetCode", v: "Top 8%" },
+          { l: "Project IQ", v: "High" },
+        ].map((s) => (
+          <div
+            key={s.l}
+            className="p-4 bg-zinc-900/50 border border-border-subtle rounded-xl hover:border-brand-primary/40 hover:-translate-y-0.5 transition-all motion-reduce:transition-none"
+          >
+            <p className="text-xs font-medium text-zinc-500 mb-1">{s.l}</p>
+            <p className="text-xl font-bold">{s.v}</p>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function PanelShell({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <div className="mb-8">
+        <h3 className="text-3xl font-display font-bold mb-2">{title}</h3>
+        <p className="text-zinc-500">{subtitle}</p>
+      </div>
+      {children}
+    </>
+  );
+}
+
 function PreviewNav({
   children,
   active,
+  onClick,
 }: {
   children: React.ReactNode;
   active?: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <div
-      className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${active ? "bg-brand-primary/10 text-brand-accent" : "text-zinc-500 hover:text-zinc-200"}`}
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent ${
+        active
+          ? "bg-brand-primary/10 text-brand-accent"
+          : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/60"
+      }`}
     >
       <div
-        className={`size-2 rounded-full ${active ? "bg-brand-accent" : "bg-zinc-700"}`}
+        className={`size-2 rounded-full transition-colors ${active ? "bg-brand-accent" : "bg-zinc-700"}`}
       />
       <span className="text-sm font-medium">{children}</span>
-    </div>
+    </button>
+  );
+}
+
+/** Counts up once the strip scrolls into view. */
+function StatValue({
+  to,
+  suffix = "",
+  decimals = 0,
+  start,
+}: {
+  to: number;
+  suffix?: string;
+  decimals?: number;
+  start: boolean;
+}) {
+  const n = useCountUp(start ? to * 10 ** decimals : 0, 1200);
+  const shown = (n / 10 ** decimals).toFixed(decimals);
+  return (
+    <span className="tabular-nums">
+      {shown}
+      {suffix}
+    </span>
   );
 }
 
 function Stats() {
+  const { ref, shown } = useReveal<HTMLElement>();
   const stats = [
-    { v: "12k+", l: "Profiles analyzed" },
-    { v: "94%", l: "Readiness lift in 8 weeks" },
-    { v: "500+", l: "Companies modeled" },
-    { v: "4.8/5", l: "Student rating" },
+    { to: 12, suffix: "k+", decimals: 0, l: "Profiles analyzed" },
+    { to: 94, suffix: "%", decimals: 0, l: "Readiness lift in 8 weeks" },
+    { to: 500, suffix: "+", decimals: 0, l: "Companies modeled" },
+    { to: 4.8, suffix: "/5", decimals: 1, l: "Student rating" },
   ];
   return (
-    <section className="border-y border-border-subtle bg-black/30">
+    <section
+      ref={ref}
+      className="border-y border-border-subtle bg-black/30 overflow-hidden"
+    >
       <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 divide-x divide-border-subtle">
-        {stats.map((s) => (
-          <div key={s.l} className="py-10 px-6 text-center">
+        {stats.map((s, i) => (
+          <div
+            key={s.l}
+            className={`py-10 px-6 text-center ${revealClass(shown, i * 90)}`}
+          >
             <div className="font-display text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-linear-to-r from-brand-accent via-brand-primary to-brand-secondary">
-              {s.v}
+              <StatValue
+                to={s.to}
+                suffix={s.suffix}
+                decimals={s.decimals}
+                start={shown}
+              />
             </div>
             <div className="mt-2 text-[11px] text-zinc-500 uppercase tracking-widest font-bold">
               {s.l}
@@ -352,8 +543,9 @@ function Features() {
       body: "Week-by-week sprint plans for Microsoft, Amazon, Google, JP Morgan, and more.",
     },
   ];
+  const { ref, shown } = useReveal<HTMLElement>();
   return (
-    <section id="features" className="max-w-7xl mx-auto px-6 py-24">
+    <section ref={ref} id="features" className="max-w-7xl mx-auto px-6 py-24">
       <div className="text-center mb-14 max-w-2xl mx-auto">
         <p className="text-xs font-bold text-brand-accent uppercase tracking-widest mb-3">
           Capabilities
@@ -367,10 +559,11 @@ function Features() {
         </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {features.map((f) => (
+        {features.map((f, i) => (
           <div
             key={f.title}
-            className="p-6 rounded-2xl bg-surface border border-border-subtle hover:border-brand-primary/40 transition-colors group"
+            style={{ transitionDelay: shown ? `${i * 60}ms` : "0ms" }}
+            className={`p-6 rounded-2xl bg-surface border border-border-subtle hover:border-brand-primary/50 hover:-translate-y-1 hover:shadow-lg hover:shadow-brand-primary/5 group ${revealClass(shown)}`}
           >
             <div className="size-10 rounded-lg bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <f.icon className="size-5 text-brand-accent" />
@@ -385,6 +578,7 @@ function Features() {
 }
 
 function Testimonials() {
+  const { ref, shown } = useReveal<HTMLElement>();
   const items = [
     {
       name: "Aarav Sharma",
@@ -407,8 +601,9 @@ function Testimonials() {
   ];
   return (
     <section
+      ref={ref}
       id="testimonials"
-      className="max-w-7xl mx-auto px-6 py-24 border-t border-border-subtle"
+      className={`max-w-7xl mx-auto px-6 py-24 border-t border-border-subtle ${revealClass(shown)}`}
     >
       <div className="text-center mb-14">
         <p className="text-xs font-bold text-brand-accent uppercase tracking-widest mb-3">
