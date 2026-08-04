@@ -67,15 +67,17 @@ Fill in the values from your Supabase dashboard (**Project Settings → API**):
 
 ### 4. Set up the database
 
-Paste `supabase/setup.sql` into the Supabase **SQL Editor** and run it. It
-creates the `profiles`, `analyses`, and `resumes` tables, the row-level security
-policies that scope every row to its owner, the signup trigger, and the private
-`resumes` storage bucket.
+Paste `supabase/setup.sql` into the Supabase **SQL Editor** and run it. That one
+file sets up everything: the `profiles`, `analyses`, and `resumes` tables, the
+`admins` and `app_settings` tables used by the admin panel, all row-level
+security policies, the signup trigger, and the private `resumes` storage bucket.
 
-(It is the files in `supabase/migrations/` combined in order, plus creation of
-the storage bucket the migrations reference but never create. If you prefer the
-CLI, `supabase db push` applies the migrations — then create the `resumes`
-bucket yourself.)
+Every statement is idempotent, so re-running it is safe and non-destructive.
+Edit the marked line near the bottom to pick which account becomes the admin.
+
+(It supersedes `supabase/migrations/`, which are kept for history. Those
+migrations also reference a `resumes` storage bucket without ever creating it —
+`setup.sql` fixes that.)
 
 ### 5. Enable email sign-in
 
@@ -132,9 +134,9 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 It is a secret. Never prefix it with `VITE_`, and never commit it.
 
-**2. Run `supabase/admin-setup.sql`** in the Supabase SQL Editor. Before you
-run it, edit the last statement to use the email you signed up with — that
-account becomes the admin.
+**2. Run `supabase/setup.sql`** in the Supabase SQL Editor, with the marked line
+near the bottom set to the email you signed up with — that account becomes the
+admin. The account must already exist, so sign up at `/auth` first.
 
 **3. Sign in** at `/admin/login`.
 
