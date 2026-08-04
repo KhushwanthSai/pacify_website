@@ -11,14 +11,19 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AdminRouteRouteImport } from './routes/_admin/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
+import { Route as AdminAdminIndexRouteImport } from './routes/_admin/admin.index'
 import { Route as AuthenticatedDashboardSkillGapRouteImport } from './routes/_authenticated/dashboard.skill-gap'
 import { Route as AuthenticatedDashboardRoadmapsRouteImport } from './routes/_authenticated/dashboard.roadmaps'
 import { Route as AuthenticatedDashboardProfileRouteImport } from './routes/_authenticated/dashboard.profile'
 import { Route as AuthenticatedDashboardCompanyFitRouteImport } from './routes/_authenticated/dashboard.company-fit'
 import { Route as AuthenticatedDashboardCoachRouteImport } from './routes/_authenticated/dashboard.coach'
+import { Route as AdminAdminSettingsRouteImport } from './routes/_admin/admin.settings'
+import { Route as AdminAdminUsersUserIdRouteImport } from './routes/_admin/admin.users.$userId'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -29,9 +34,18 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRouteRoute = AdminRouteRouteImport.update({
+  id: '/_admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -45,6 +59,11 @@ const AuthenticatedDashboardIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AdminAdminIndexRoute = AdminAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AuthenticatedDashboardSkillGapRoute =
   AuthenticatedDashboardSkillGapRouteImport.update({
     id: '/skill-gap',
@@ -75,40 +94,63 @@ const AuthenticatedDashboardCoachRoute =
     path: '/coach',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AdminAdminSettingsRoute = AdminAdminSettingsRouteImport.update({
+  id: '/admin/settings',
+  path: '/admin/settings',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminAdminUsersUserIdRoute = AdminAdminUsersUserIdRouteImport.update({
+  id: '/admin/users/$userId',
+  path: '/admin/users/$userId',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/settings': typeof AdminAdminSettingsRoute
   '/dashboard/coach': typeof AuthenticatedDashboardCoachRoute
   '/dashboard/company-fit': typeof AuthenticatedDashboardCompanyFitRoute
   '/dashboard/profile': typeof AuthenticatedDashboardProfileRoute
   '/dashboard/roadmaps': typeof AuthenticatedDashboardRoadmapsRoute
   '/dashboard/skill-gap': typeof AuthenticatedDashboardSkillGapRoute
+  '/admin/': typeof AdminAdminIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/admin/users/$userId': typeof AdminAdminUsersUserIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/settings': typeof AdminAdminSettingsRoute
   '/dashboard/coach': typeof AuthenticatedDashboardCoachRoute
   '/dashboard/company-fit': typeof AuthenticatedDashboardCompanyFitRoute
   '/dashboard/profile': typeof AuthenticatedDashboardProfileRoute
   '/dashboard/roadmaps': typeof AuthenticatedDashboardRoadmapsRoute
   '/dashboard/skill-gap': typeof AuthenticatedDashboardSkillGapRoute
+  '/admin': typeof AdminAdminIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
+  '/admin/users/$userId': typeof AdminAdminUsersUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_admin': typeof AdminRouteRouteWithChildren
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/admin/login': typeof AdminLoginRoute
+  '/_admin/admin/settings': typeof AdminAdminSettingsRoute
   '/_authenticated/dashboard/coach': typeof AuthenticatedDashboardCoachRoute
   '/_authenticated/dashboard/company-fit': typeof AuthenticatedDashboardCompanyFitRoute
   '/_authenticated/dashboard/profile': typeof AuthenticatedDashboardProfileRoute
   '/_authenticated/dashboard/roadmaps': typeof AuthenticatedDashboardRoadmapsRoute
   '/_authenticated/dashboard/skill-gap': typeof AuthenticatedDashboardSkillGapRoute
+  '/_admin/admin/': typeof AdminAdminIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/_admin/admin/users/$userId': typeof AdminAdminUsersUserIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -116,40 +158,55 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/dashboard'
+    | '/admin/login'
+    | '/admin/settings'
     | '/dashboard/coach'
     | '/dashboard/company-fit'
     | '/dashboard/profile'
     | '/dashboard/roadmaps'
     | '/dashboard/skill-gap'
+    | '/admin/'
     | '/dashboard/'
+    | '/admin/users/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
+    | '/admin/login'
+    | '/admin/settings'
     | '/dashboard/coach'
     | '/dashboard/company-fit'
     | '/dashboard/profile'
     | '/dashboard/roadmaps'
     | '/dashboard/skill-gap'
+    | '/admin'
     | '/dashboard'
+    | '/admin/users/$userId'
   id:
     | '__root__'
     | '/'
+    | '/_admin'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/dashboard'
+    | '/admin/login'
+    | '/_admin/admin/settings'
     | '/_authenticated/dashboard/coach'
     | '/_authenticated/dashboard/company-fit'
     | '/_authenticated/dashboard/profile'
     | '/_authenticated/dashboard/roadmaps'
     | '/_authenticated/dashboard/skill-gap'
+    | '/_admin/admin/'
     | '/_authenticated/dashboard/'
+    | '/_admin/admin/users/$userId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  AdminLoginRoute: typeof AdminLoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -168,11 +225,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_admin': {
+      id: '/_admin'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AdminRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/dashboard': {
@@ -188,6 +259,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/'
       preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_admin/admin/': {
+      id: '/_admin/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminAdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
     '/_authenticated/dashboard/skill-gap': {
       id: '/_authenticated/dashboard/skill-gap'
@@ -224,8 +302,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardCoachRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_admin/admin/settings': {
+      id: '/_admin/admin/settings'
+      path: '/admin/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminAdminSettingsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/_admin/admin/users/$userId': {
+      id: '/_admin/admin/users/$userId'
+      path: '/admin/users/$userId'
+      fullPath: '/admin/users/$userId'
+      preLoaderRoute: typeof AdminAdminUsersUserIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
   }
 }
+
+interface AdminRouteRouteChildren {
+  AdminAdminSettingsRoute: typeof AdminAdminSettingsRoute
+  AdminAdminIndexRoute: typeof AdminAdminIndexRoute
+  AdminAdminUsersUserIdRoute: typeof AdminAdminUsersUserIdRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminAdminSettingsRoute: AdminAdminSettingsRoute,
+  AdminAdminIndexRoute: AdminAdminIndexRoute,
+  AdminAdminUsersUserIdRoute: AdminAdminUsersUserIdRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
 
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardCoachRoute: typeof AuthenticatedDashboardCoachRoute
@@ -265,8 +373,10 @@ const AuthenticatedRouteRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  AdminLoginRoute: AdminLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

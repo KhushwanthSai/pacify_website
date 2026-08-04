@@ -115,6 +115,73 @@ then the button shows a clear message rather than failing silently.
 
 ---
 
+## Admin panel
+
+A separate, guarded area at `/admin` for managing users and app settings.
+
+### Setup
+
+**1. Add the service role key.** The admin panel reads and edits every user's
+data, which means bypassing row-level security. Put this in `.env` (and in
+Vercel's environment variables). Supabase dashboard → **Project Settings → API
+→ service_role**:
+
+```
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+It is a secret. Never prefix it with `VITE_`, and never commit it.
+
+**2. Run `supabase/admin-setup.sql`** in the Supabase SQL Editor. Before you
+run it, edit the last statement to use the email you signed up with — that
+account becomes the admin.
+
+**3. Sign in** at `/admin/login`.
+
+### How access control works
+
+Admin status lives in a dedicated `admins` table that has row-level security on
+and **no policies or grants for `anon` or `authenticated`**. Normal users cannot
+read it, let alone write to it, so nobody can promote themselves by editing
+their own profile. Every admin server function re-checks membership server-side
+through the `requireAdmin` middleware — the client-side route guard is only for
+redirecting, never the actual boundary.
+
+To add another admin:
+
+```sql
+INSERT INTO public.admins (user_id)
+SELECT id FROM auth.users WHERE email = 'someone@example.com';
+```
+
+### What it does
+
+| Page | Capability |
+| --- | --- |
+| `/admin` | Every registered user with profile, phone, college, sign-up date, analysis count; live search |
+| `/admin/users/$id` | Full detail — all submitted profile fields, resumes, analysis history — plus edit and delete |
+| `/admin/settings` | App settings, persisted to the database |
+
+Editing a user writes to `profiles` immediately; changing an email also updates
+`auth.users`. Deleting removes the account and cascades to their profile,
+resumes, and analyses. An admin cannot delete the account they are signed in
+with.
+
+### Settings
+
+These are read by the app at runtime, not just stored:
+
+| Setting | Effect |
+| --- | --- |
+| `site_name` | Shown in the maintenance banner and admin UI |
+| `support_email` | Contact address; blank hides it |
+| `allow_signups` | When off, the sign-up form on `/auth` is disabled |
+| `maintenance_mode` | Shows a site-wide banner on every page |
+| `ai_enabled` | When off, analyses return the neutral baseline without calling the model |
+| `ai_model` | The Gemini model id used for analysis |
+
+---
+
 ## Scripts
 
 | Command           | Description                          |

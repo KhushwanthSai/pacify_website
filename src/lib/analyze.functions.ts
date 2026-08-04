@@ -84,17 +84,21 @@ export const analyzeProfile = createServerFn({ method: "POST" })
       resumes: (resumes ?? []).map((r) => r.file_name),
     };
 
-    // Without a key the app still works — it just returns the neutral baseline
-    // in fallback() instead of a model-generated analysis.
+    // Without a key — or with AI switched off in the admin settings — the app
+    // still works, returning the neutral baseline from fallback() instead of a
+    // model-generated analysis.
+    const { getServerSettings } = await import("./settings.server");
+    const settings = await getServerSettings();
+
     const apiKey = process.env.GEMINI_API_KEY;
     let result: AIResult;
 
-    if (!apiKey) {
+    if (!apiKey || !settings.ai_enabled) {
       result = fallback();
     } else {
       try {
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${AI_MODEL}:generateContent`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${settings.ai_model || AI_MODEL}:generateContent`,
           {
             method: "POST",
             headers: {

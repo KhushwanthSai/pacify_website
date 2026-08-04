@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { fetchPublicSettings } from "@/lib/settings";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -25,6 +26,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [signupsAllowed, setSignupsAllowed] = useState(true);
   const configured = isSupabaseConfigured();
 
   useEffect(() => {
@@ -34,6 +36,20 @@ function AuthPage() {
     });
   }, [navigate, configured]);
 
+  // Admin setting: when sign-ups are closed, only existing users can log in.
+  useEffect(() => {
+    if (!configured) return;
+    let active = true;
+    fetchPublicSettings().then((s) => {
+      if (!active) return;
+      setSignupsAllowed(s.allow_signups);
+      if (!s.allow_signups) setMode("signin");
+    });
+    return () => {
+      active = false;
+    };
+  }, [configured]);
+
   if (!configured) return <SetupNotice />;
 
   async function handleEmail(e: React.FormEvent) {
@@ -41,6 +57,9 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
+        if (!signupsAllowed) {
+          throw new Error("New sign-ups are currently closed.");
+        }
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -158,15 +177,21 @@ function AuthPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-zinc-500">
-            {mode === "signin" ? "New here?" : "Already have an account?"}{" "}
-            <button
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-              className="text-brand-accent font-semibold hover:underline"
-            >
-              {mode === "signin" ? "Create an account" : "Sign in"}
-            </button>
-          </p>
+          {signupsAllowed ? (
+            <p className="mt-6 text-center text-sm text-zinc-500">
+              {mode === "signin" ? "New here?" : "Already have an account?"}{" "}
+              <button
+                onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+                className="text-brand-accent font-semibold hover:underline"
+              >
+                {mode === "signin" ? "Create an account" : "Sign in"}
+              </button>
+            </p>
+          ) : (
+            <p className="mt-6 text-center text-sm text-zinc-500">
+              New sign-ups are currently closed.
+            </p>
+          )}
         </div>
       </div>
     </div>
