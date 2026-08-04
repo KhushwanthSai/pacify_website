@@ -31,13 +31,18 @@ const EMPTY_RADAR = [
   { axis: "Comm.", value: 0 },
 ];
 
-/** Readiness band shown under the headline score. */
-function readinessLabel(score: number): string {
-  if (score === 0) return "No analysis yet";
+/**
+ * Readiness band shown under the headline score. `analysed` is passed
+ * separately from the score: a real analysis can legitimately come back at 0,
+ * and that is not the same as never having run one.
+ */
+function readinessLabel(score: number, analysed: boolean): string {
+  if (!analysed) return "No analysis yet";
   if (score >= 80) return "Job Ready · Highly Competitive";
   if (score >= 60) return "Nearly Ready · Some Gaps";
   if (score >= 40) return "Developing · Notable Gaps";
-  return "Early Stage · Significant Gaps";
+  if (score > 0) return "Early Stage · Significant Gaps";
+  return "Analysis could not be scored";
 }
 
 /**
@@ -145,7 +150,7 @@ function ReadinessPage() {
               a ? "text-emerald-400" : "text-zinc-600"
             }`}
           >
-            {readinessLabel(scores.readiness_score)}
+            {readinessLabel(scores.readiness_score, Boolean(a))}
           </p>
         </div>
       </header>

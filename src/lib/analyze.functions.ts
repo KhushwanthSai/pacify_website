@@ -28,9 +28,95 @@ type AIResult = {
 // `gemini-2.0-flash` has a free-tier quota of zero.
 const AI_MODEL = "gemini-flash-latest";
 
+/**
+ * Enforced by the API, not just requested in the prompt.
+ *
+ * Without this the model picks its own key names — an earlier version asked
+ * for "score fields" without naming them and got `ats_score` right while
+ * silently dropping `readiness_score`, `resume_score`, `github_score` and
+ * `linkedin_score`, which then read as 0 on the dashboard.
+ */
+const RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    readiness_score: { type: "integer" },
+    resume_score: { type: "integer" },
+    ats_score: { type: "integer" },
+    technical_score: { type: "integer" },
+    communication_score: { type: "integer" },
+    github_score: { type: "integer" },
+    linkedin_score: { type: "integer" },
+    summary: { type: "string" },
+    strengths: { type: "array", items: { type: "string" } },
+    weaknesses: { type: "array", items: { type: "string" } },
+    skill_gaps: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          skill: { type: "string" },
+          severity: { type: "string", enum: ["critical", "high", "medium"] },
+        },
+        required: ["skill", "severity"],
+      },
+    },
+    company_fit: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          score: { type: "integer" },
+          tier: { type: "string", enum: ["Tier 1", "Tier 2", "Service"] },
+        },
+        required: ["name", "score", "tier"],
+      },
+    },
+    radar: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          axis: {
+            type: "string",
+            enum: ["DSA", "Web Dev", "Systems", "DevOps", "AI / ML", "Comm."],
+          },
+          value: { type: "integer" },
+        },
+        required: ["axis", "value"],
+      },
+    },
+  },
+  required: [
+    "readiness_score",
+    "resume_score",
+    "ats_score",
+    "technical_score",
+    "communication_score",
+    "github_score",
+    "linkedin_score",
+    "summary",
+    "strengths",
+    "weaknesses",
+    "skill_gaps",
+    "company_fit",
+    "radar",
+  ],
+} as const;
+
 const SYSTEM = `You are Placify AI, a placement readiness analyst for university students.
 Given a student profile, return a strict JSON object scoring them and estimating Company Fit Scores for hiring at top tech companies.
-All score fields are integers 0-100. Skill gap severity is one of: critical, high, medium.
+
+Every score is an integer 0-100:
+- readiness_score: overall placement readiness, the headline number
+- resume_score: quality, structure and impact of the resume itself
+- ats_score: how well it parses through applicant tracking systems
+- technical_score: depth of technical skill shown
+- communication_score: clarity of writing and evidence of communication
+- github_score: strength of GitHub/open-source evidence (0 if none is given)
+- linkedin_score: strength of the LinkedIn profile (0 if none is given)
+
+Skill gap severity is one of: critical, high, medium.
 Company tiers: "Tier 1" (Google, Meta, Amazon, Microsoft, Apple, Netflix), "Tier 2" (Goldman Sachs, JP Morgan, Deloitte, Adobe, Walmart), "Service" (TCS, Infosys, Wipro, Cognizant, Capgemini, Accenture).
 Radar axes must be exactly: DSA, Web Dev, Systems, DevOps, AI / ML, Comm.
 
@@ -284,7 +370,10 @@ export const analyzeProfile = createServerFn({ method: "POST" })
                   parts: buildPromptParts(userPayload, resumeContent),
                 },
               ],
-              generationConfig: { responseMimeType: "application/json" },
+              generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: RESPONSE_SCHEMA,
+              },
             }),
           },
         );
