@@ -54,8 +54,8 @@ type Analysis = {
   readiness_score: number;
   resume_score: number;
   ats_score: number;
+  technical_score: number;
   github_score: number;
-  linkedin_score: number;
   summary?: string | null;
   radar?: { axis: string; value: number }[];
   skill_gaps?: SkillGap[];
@@ -82,8 +82,8 @@ function ReadinessPage() {
     readiness_score: 0,
     resume_score: 0,
     ats_score: 0,
+    technical_score: 0,
     github_score: 0,
-    linkedin_score: 0,
   };
   const radar = a?.radar?.length ? a.radar : EMPTY_RADAR;
   const gaps = a?.skill_gaps?.length ? a.skill_gaps : [];
@@ -160,8 +160,8 @@ function ReadinessPage() {
         {[
           { l: "Resume", v: scores.resume_score },
           { l: "ATS", v: scores.ats_score },
+          { l: "Technical", v: scores.technical_score },
           { l: "GitHub", v: scores.github_score },
-          { l: "LinkedIn", v: scores.linkedin_score },
         ].map((c) => (
           <div
             key={c.l}
