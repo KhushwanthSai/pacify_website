@@ -18,10 +18,11 @@ function RoadmapsPage() {
           Roadmaps
         </p>
         <h1 className="font-display text-3xl md:text-4xl font-extrabold tracking-tight">
-          Personalized prep sprints
+          Prep sprints by company
         </h1>
         <p className="text-zinc-500 mt-2">
-          A 4-week plan tailored to your gaps and your target company.
+          Standard 4-week plans for common target companies. Pair them with your
+          skill gap map to decide where to start.
         </p>
       </header>
       <div className="flex flex-wrap gap-2">

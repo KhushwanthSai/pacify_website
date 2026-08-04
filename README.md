@@ -40,7 +40,7 @@ and a personalized improvement roadmap.
 
 - Node.js 20 or newer
 - A [Supabase](https://supabase.com) project (free tier is fine)
-- Optionally, a [Google AI Studio](https://aistudio.google.com/apikey) key for real AI analysis
+- A [Google AI Studio](https://aistudio.google.com/apikey) key — without it analyses return zeros rather than invented scores
 
 ### 2. Install
 
@@ -56,14 +56,14 @@ cp .env.example .env
 
 Fill in the values from your Supabase dashboard (**Project Settings → API**):
 
-| Variable                        | Where it's used | Notes                                                        |
-| ------------------------------- | --------------- | ------------------------------------------------------------ |
-| `VITE_SUPABASE_URL`             | Browser         | Project URL                                                  |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Browser         | `anon` public key                                            |
-| `SUPABASE_URL`                  | Server          | Same project URL                                             |
-| `SUPABASE_PUBLISHABLE_KEY`      | Server          | Same `anon` key                                              |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Server          | Optional; unused today. **Secret** — bypasses RLS if set     |
-| `GEMINI_API_KEY`                | Server          | Optional; without it the analysis returns a neutral baseline |
+| Variable                        | Where it's used | Notes                                                       |
+| ------------------------------- | --------------- | ----------------------------------------------------------- |
+| `VITE_SUPABASE_URL`             | Browser         | Project URL                                                 |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Browser         | `anon` public key                                           |
+| `SUPABASE_URL`                  | Server          | Same project URL                                            |
+| `SUPABASE_PUBLISHABLE_KEY`      | Server          | Same `anon` key                                             |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Server          | Required for the admin panel. **Secret** — bypasses RLS     |
+| `GEMINI_API_KEY`                | Server          | Required for real scoring; without it analyses return zeros |
 
 ### 4. Set up the database
 
@@ -158,11 +158,11 @@ SELECT id FROM auth.users WHERE email = 'someone@example.com';
 
 ### What it does
 
-| Page | Capability |
-| --- | --- |
-| `/admin` | Every registered user with profile, phone, college, sign-up date, analysis count; live search |
-| `/admin/users/$id` | Full detail — all submitted profile fields, resumes, analysis history — plus edit and delete |
-| `/admin/settings` | App settings, persisted to the database |
+| Page               | Capability                                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| `/admin`           | Every registered user with profile, phone, college, sign-up date, analysis count; live search |
+| `/admin/users/$id` | Full detail — all submitted profile fields, resumes, analysis history — plus edit and delete  |
+| `/admin/settings`  | App settings, persisted to the database                                                       |
 
 Editing a user writes to `profiles` immediately; changing an email also updates
 `auth.users`. Deleting removes the account and cascades to their profile,
@@ -173,14 +173,14 @@ with.
 
 These are read by the app at runtime, not just stored:
 
-| Setting | Effect |
-| --- | --- |
-| `site_name` | Shown in the maintenance banner and admin UI |
-| `support_email` | Contact address; blank hides it |
-| `allow_signups` | When off, the sign-up form on `/auth` is disabled |
-| `maintenance_mode` | Shows a site-wide banner on every page |
-| `ai_enabled` | When off, analyses return the neutral baseline without calling the model |
-| `ai_model` | The Gemini model id used for analysis |
+| Setting            | Effect                                                                   |
+| ------------------ | ------------------------------------------------------------------------ |
+| `site_name`        | Shown in the maintenance banner and admin UI                             |
+| `support_email`    | Contact address; blank hides it                                          |
+| `allow_signups`    | When off, the sign-up form on `/auth` is disabled                        |
+| `maintenance_mode` | Shows a site-wide banner on every page                                   |
+| `ai_enabled`       | When off, analyses return the neutral baseline without calling the model |
+| `ai_model`         | The Gemini model id used for analysis                                    |
 
 ---
 

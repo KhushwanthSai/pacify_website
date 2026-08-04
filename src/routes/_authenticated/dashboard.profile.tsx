@@ -55,8 +55,11 @@ function ProfilePage() {
   const navigate = useNavigate();
   const runAnalyze = useServerFn(analyzeProfile);
 
+  // Analysis reads the resume, so it is pointless without one uploaded.
+  const hasResume = files.some((f) => f.progress === 100);
+
   async function analyzeNow() {
-    if (!userId) return;
+    if (!userId || !hasResume) return;
     setAnalyzing(true);
     try {
       // Save latest form first so AI sees current data
@@ -381,15 +384,16 @@ function ProfilePage() {
         <div className="mt-6 flex flex-wrap gap-3 items-center">
           <button
             onClick={analyzeNow}
-            disabled={analyzing || loading || !userId}
-            className="px-6 py-3 rounded-xl bg-linear-to-r from-brand-primary to-brand-secondary text-white font-bold disabled:opacity-60 inline-flex items-center gap-2"
+            disabled={analyzing || loading || !userId || !hasResume}
+            className="px-6 py-3 rounded-xl bg-linear-to-r from-brand-primary to-brand-secondary text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
           >
             {analyzing && <Loader2 className="size-4 animate-spin" />}
-            {analyzing ? "Analyzing with AI…" : "Analyze my profile"}
+            {analyzing ? "Analyzing your resume…" : "Analyze my profile"}
           </button>
-          <p className="text-xs text-zinc-500">
-            Runs AI scoring on your profile and resumes, then opens your
-            readiness dashboard.
+          <p className="text-xs text-zinc-500 max-w-sm">
+            {hasResume
+              ? "Reads your most recent resume along with your profile, then opens your readiness dashboard."
+              : "Upload a resume first — your scores are based on what it actually contains."}
           </p>
         </div>
       </section>

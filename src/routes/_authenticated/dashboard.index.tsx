@@ -12,22 +12,33 @@ import {
   XAxis,
   Tooltip,
 } from "recharts";
-import {
-  COMPANY_FIT,
-  RADAR_DATA,
-  SCORES,
-  CONTRIB_DATA,
-  SKILL_GAPS,
-  type CompanyFit,
-  type SkillGap,
-} from "@/lib/mock-data";
+import { CONTRIB_DATA, type CompanyFit, type SkillGap } from "@/lib/mock-data";
 import { useServerFn } from "@tanstack/react-start";
 import { getLatestAnalysis } from "@/lib/analyze.functions";
-import { Loader2 } from "lucide-react";
+import { Loader2, UploadCloud, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: ReadinessPage,
 });
+
+/** Zeroed radar so the chart keeps its shape before the first analysis. */
+const EMPTY_RADAR = [
+  { axis: "DSA", value: 0 },
+  { axis: "Web Dev", value: 0 },
+  { axis: "Systems", value: 0 },
+  { axis: "DevOps", value: 0 },
+  { axis: "AI / ML", value: 0 },
+  { axis: "Comm.", value: 0 },
+];
+
+/** Readiness band shown under the headline score. */
+function readinessLabel(score: number): string {
+  if (score === 0) return "No analysis yet";
+  if (score >= 80) return "Job Ready · Highly Competitive";
+  if (score >= 60) return "Nearly Ready · Some Gaps";
+  if (score >= 40) return "Developing · Notable Gaps";
+  return "Early Stage · Significant Gaps";
+}
 
 /**
  * The subset of an `analyses` row this page reads. The row's JSON columns come
@@ -60,16 +71,18 @@ function ReadinessPage() {
       .catch(() => setLoading(false));
   }, []);
 
+  // Everything reads zero until a real analysis exists. Showing sample numbers
+  // here is indistinguishable from a genuine result to the student.
   const scores = a ?? {
-    readiness_score: SCORES.readiness,
-    resume_score: SCORES.resume,
-    ats_score: SCORES.ats,
-    github_score: SCORES.github,
-    linkedin_score: SCORES.linkedin,
+    readiness_score: 0,
+    resume_score: 0,
+    ats_score: 0,
+    github_score: 0,
+    linkedin_score: 0,
   };
-  const radar = a?.radar?.length ? a.radar : RADAR_DATA;
-  const gaps = a?.skill_gaps?.length ? a.skill_gaps : SKILL_GAPS;
-  const companyFit = a?.company_fit?.length ? a.company_fit : COMPANY_FIT;
+  const radar = a?.radar?.length ? a.radar : EMPTY_RADAR;
+  const gaps = a?.skill_gaps?.length ? a.skill_gaps : [];
+  const companyFit = a?.company_fit?.length ? a.company_fit : [];
   const top = companyFit.slice(0, 6);
 
   if (loading) {
@@ -84,16 +97,29 @@ function ReadinessPage() {
   return (
     <div className="p-6 md:p-10 space-y-8 max-w-7xl">
       {!a && (
-        <div className="p-4 rounded-xl border border-amber-400/30 bg-amber-400/5 text-sm flex flex-wrap items-center justify-between gap-3">
-          <span className="text-amber-200">
-            No analysis yet — showing sample data.
-          </span>
-          <Link
-            to="/dashboard/profile"
-            className="px-3 py-1.5 rounded-lg bg-amber-400 text-black text-xs font-bold"
-          >
-            Run analysis
-          </Link>
+        <div className="p-6 md:p-8 rounded-2xl border border-brand-primary/30 bg-linear-to-br from-brand-primary/10 to-transparent">
+          <div className="flex flex-wrap items-start justify-between gap-6">
+            <div className="max-w-xl">
+              <div className="size-11 rounded-xl bg-brand-primary/15 border border-brand-primary/25 grid place-items-center mb-4">
+                <UploadCloud className="size-5 text-brand-accent" />
+              </div>
+              <h2 className="font-display text-xl font-extrabold tracking-tight">
+                Upload your resume to get started
+              </h2>
+              <p className="text-sm text-zinc-400 mt-2">
+                Every score below is zero because you haven&apos;t been analysed
+                yet. Upload your resume and we&apos;ll read it to work out your
+                readiness, company fit, and skill gaps.
+              </p>
+              <Link
+                to="/dashboard/profile"
+                className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-linear-to-r from-brand-primary to-brand-secondary text-white text-sm font-bold"
+              >
+                <Sparkles className="size-4" />
+                Upload resume &amp; analyse
+              </Link>
+            </div>
+          </div>
         </div>
       )}
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -102,13 +128,11 @@ function ReadinessPage() {
             Placement Readiness
           </p>
           <h1 className="font-display text-3xl md:text-4xl font-extrabold tracking-tight">
-            {a?.summary
-              ? "Your latest AI snapshot"
-              : "Hello — you're tracking well."}
+            {a ? "Your latest AI snapshot" : "No analysis yet"}
           </h1>
           <p className="text-zinc-500 mt-2">
             {a?.summary ??
-              "Snapshot of your AI-generated readiness across resume, GitHub, LinkedIn, and target companies."}
+              "Your readiness across resume, GitHub, LinkedIn, and target companies will appear here once you run an analysis."}
           </p>
         </div>
         <div className="text-right">
@@ -116,8 +140,12 @@ function ReadinessPage() {
             {scores.readiness_score}
             <span className="text-zinc-600 text-2xl">/100</span>
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 mt-1">
-            Job Ready · Highly Competitive
+          <p
+            className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${
+              a ? "text-emerald-400" : "text-zinc-600"
+            }`}
+          >
+            {readinessLabel(scores.readiness_score)}
           </p>
         </div>
       </header>
@@ -190,6 +218,11 @@ function ReadinessPage() {
             <span className="size-1.5 bg-amber-400 rounded-full animate-pulse" />
             Critical Skill Gaps
           </h3>
+          {gaps.length === 0 && (
+            <p className="text-sm text-zinc-600">
+              Your skill gaps appear here after your first analysis.
+            </p>
+          )}
           <ul className="space-y-3">
             {gaps.map((g: SkillGap) => (
               <li
@@ -223,6 +256,11 @@ function ReadinessPage() {
               AI estimate
             </span>
           </div>
+          {top.length === 0 && (
+            <p className="text-sm text-zinc-600">
+              Company fit scores appear here after your first analysis.
+            </p>
+          )}
           <div className="space-y-4">
             {top.map((c: CompanyFit, i: number) => (
               <div key={c.name}>
@@ -241,7 +279,14 @@ function ReadinessPage() {
           </div>
         </div>
         <div className="p-6 rounded-2xl bg-surface border border-border-subtle">
-          <h3 className="font-display font-bold mb-4">GitHub Activity</h3>
+          {/* No GitHub integration exists yet, so this chart is illustrative.
+              It is labelled as such rather than passing for real activity. */}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-display font-bold">GitHub Activity</h3>
+            <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-500">
+              Sample
+            </span>
+          </div>
           <div className="h-48">
             <ResponsiveContainer>
               <AreaChart

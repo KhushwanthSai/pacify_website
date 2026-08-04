@@ -1,4 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { Loader2, UploadCloud } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -8,21 +11,22 @@ import {
   Tooltip,
   Cell,
 } from "recharts";
-import { SKILL_GAPS } from "@/lib/mock-data";
+import { getLatestAnalysis } from "@/lib/analyze.functions";
+import type { SkillGap } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/_authenticated/dashboard/skill-gap")({
   component: SkillGapPage,
 });
 
-const SKILL_LEVELS = [
-  { skill: "DSA", you: 78, target: 88 },
-  { skill: "System Design", you: 28, target: 75 },
-  { skill: "AWS", you: 35, target: 70 },
-  { skill: "Docker", you: 42, target: 70 },
-  { skill: "Kubernetes", you: 20, target: 60 },
-  { skill: "Web Dev", you: 88, target: 70 },
-  { skill: "DBMS", you: 72, target: 70 },
-];
+/** Benchmark each radar axis is compared against, by product-company hiring bar. */
+const TARGETS: Record<string, number> = {
+  DSA: 88,
+  "Web Dev": 70,
+  Systems: 75,
+  DevOps: 65,
+  "AI / ML": 60,
+  "Comm.": 75,
+};
 
 const PATH = [
   {
@@ -47,7 +51,67 @@ const PATH = [
   },
 ];
 
+type AnalysisSlice = {
+  radar?: { axis: string; value: number }[];
+  skill_gaps?: SkillGap[];
+};
+
 function SkillGapPage() {
+  const fetchLatest = useServerFn(getLatestAnalysis);
+  const [analysis, setAnalysis] = useState<AnalysisSlice | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchLatest({})
+      .then((r) => {
+        const row = r as AnalysisSlice | null;
+        setAnalysis(row?.radar?.length || row?.skill_gaps?.length ? row : null);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-10 flex items-center gap-3 text-zinc-500">
+        <Loader2 className="size-4 animate-spin" /> Loading your skill gaps…
+      </div>
+    );
+  }
+
+  if (!analysis) {
+    return (
+      <div className="p-6 md:p-10 max-w-3xl">
+        <div className="p-8 rounded-2xl border border-brand-primary/30 bg-linear-to-br from-brand-primary/10 to-transparent">
+          <div className="size-11 rounded-xl bg-brand-primary/15 border border-brand-primary/25 grid place-items-center mb-4">
+            <UploadCloud className="size-5 text-brand-accent" />
+          </div>
+          <h1 className="font-display text-xl font-extrabold tracking-tight">
+            No skill gap data yet
+          </h1>
+          <p className="text-sm text-zinc-400 mt-2">
+            Your gaps are worked out from your resume and profile. Upload your
+            resume and run an analysis to see them.
+          </p>
+          <Link
+            to="/dashboard/profile"
+            className="mt-5 inline-block px-5 py-2.5 rounded-xl bg-linear-to-r from-brand-primary to-brand-secondary text-white text-sm font-bold"
+          >
+            Upload resume &amp; analyse
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Chart the student's own radar scores against the hiring benchmark.
+  const skillLevels = (analysis.radar ?? []).map((r) => ({
+    skill: r.axis,
+    you: r.value,
+    target: TARGETS[r.axis] ?? 70,
+  }));
+  const gaps = analysis.skill_gaps ?? [];
+
   return (
     <div className="p-6 md:p-10 space-y-8 max-w-7xl">
       <header>
@@ -69,7 +133,7 @@ function SkillGapPage() {
         <div className="h-80">
           <ResponsiveContainer>
             <BarChart
-              data={SKILL_LEVELS}
+              data={skillLevels}
               margin={{ left: -20, right: 12, top: 8, bottom: 0 }}
             >
               <XAxis
@@ -98,7 +162,7 @@ function SkillGapPage() {
                 radius={[6, 6, 0, 0]}
               />
               <Bar dataKey="you" radius={[6, 6, 0, 0]}>
-                {SKILL_LEVELS.map((d, i) => (
+                {skillLevels.map((d, i) => (
                   <Cell
                     key={i}
                     fill={
@@ -129,7 +193,7 @@ function SkillGapPage() {
         <section className="p-6 rounded-2xl bg-surface border border-border-subtle">
           <h3 className="font-display font-bold mb-4">Missing skills</h3>
           <ul className="space-y-3">
-            {SKILL_GAPS.map((g) => (
+            {gaps.map((g) => (
               <li
                 key={g.skill}
                 className="flex items-center justify-between p-3 bg-zinc-900/40 rounded-lg border border-border-subtle"

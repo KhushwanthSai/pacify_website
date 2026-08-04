@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database } from "@/integrations/supabase/types";
 
 type AIResult = {
   readiness_score: number;
@@ -28,40 +30,128 @@ Given a student profile, return a strict JSON object scoring them and estimating
 All score fields are integers 0-100. Skill gap severity is one of: critical, high, medium.
 Company tiers: "Tier 1" (Google, Meta, Amazon, Microsoft, Apple, Netflix), "Tier 2" (Goldman Sachs, JP Morgan, Deloitte, Adobe, Walmart), "Service" (TCS, Infosys, Wipro, Cognizant, Capgemini, Accenture).
 Radar axes must be exactly: DSA, Web Dev, Systems, DevOps, AI / ML, Comm.
-Be realistic — do NOT inflate scores. A blank profile should score low. Output ONLY valid JSON, no markdown.`;
 
-function fallback(): AIResult {
+Ground every score in evidence you can actually see in the resume and profile.
+Do NOT inflate. A sparse resume with no projects, internships or measurable
+impact should score low. Reserve scores above 80 for genuinely strong evidence.
+Quote concrete details from the resume in the summary, strengths and weaknesses
+so the student can tell the analysis actually read their document.
+
+Output ONLY valid JSON, no markdown.`;
+
+/**
+ * Used when the model cannot be reached — no API key, AI disabled by an admin,
+ * or the request failed.
+ *
+ * Every score is zero on purpose. Inventing plausible-looking numbers here
+ * would be indistinguishable from a real analysis to the student, so the
+ * absence of a result is reported as an absence.
+ */
+function fallback(reason = "AI analysis is currently unavailable"): AIResult {
   return {
-    readiness_score: 40,
-    resume_score: 40,
-    ats_score: 50,
-    technical_score: 40,
-    communication_score: 50,
-    github_score: 30,
-    linkedin_score: 30,
-    summary:
-      "Add more details to your profile to unlock a meaningful analysis.",
+    readiness_score: 0,
+    resume_score: 0,
+    ats_score: 0,
+    technical_score: 0,
+    communication_score: 0,
+    github_score: 0,
+    linkedin_score: 0,
+    summary: `${reason}. No scores were generated — these are not real results. Try again later.`,
     strengths: [],
-    weaknesses: ["Profile is sparse"],
-    skill_gaps: [
-      { skill: "Add projects", severity: "critical" },
-      { skill: "Add GitHub link", severity: "high" },
-    ],
-    company_fit: [
-      { name: "TCS", score: 60, tier: "Service" },
-      { name: "Infosys", score: 58, tier: "Service" },
-      { name: "Amazon", score: 25, tier: "Tier 1" },
-      { name: "Google", score: 20, tier: "Tier 1" },
-    ],
+    weaknesses: [],
+    skill_gaps: [],
+    company_fit: [],
     radar: [
-      { axis: "DSA", value: 40 },
-      { axis: "Web Dev", value: 40 },
-      { axis: "Systems", value: 30 },
-      { axis: "DevOps", value: 25 },
-      { axis: "AI / ML", value: 30 },
-      { axis: "Comm.", value: 50 },
+      { axis: "DSA", value: 0 },
+      { axis: "Web Dev", value: 0 },
+      { axis: "Systems", value: 0 },
+      { axis: "DevOps", value: 0 },
+      { axis: "AI / ML", value: 0 },
+      { axis: "Comm.", value: 0 },
     ],
   };
+}
+
+/** What we managed to extract from the stored resume file. */
+type ResumeContent =
+  | { kind: "pdf"; base64: string }
+  | { kind: "text"; text: string }
+  | { kind: "unreadable"; reason: string };
+
+const MIME_BY_EXT: Record<string, string> = {
+  pdf: "application/pdf",
+  txt: "text/plain",
+};
+
+/**
+ * Downloads the resume from private storage and turns it into something the
+ * model can read. Gemini accepts PDFs directly as inline data, so those go
+ * through byte-for-byte; plain text is decoded. DOC/DOCX are binary formats
+ * Gemini cannot parse, so they degrade to a note rather than garbage input.
+ */
+async function readResume(
+  supabase: SupabaseClient<Database>,
+  filePath: string,
+): Promise<ResumeContent> {
+  const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
+
+  try {
+    const { data, error } = await supabase.storage
+      .from("resumes")
+      .download(filePath);
+    if (error || !data) {
+      return { kind: "unreadable", reason: "the file could not be downloaded" };
+    }
+
+    const buffer = Buffer.from(await data.arrayBuffer());
+
+    if (MIME_BY_EXT[ext] === "application/pdf") {
+      return { kind: "pdf", base64: buffer.toString("base64") };
+    }
+    if (MIME_BY_EXT[ext] === "text/plain") {
+      return { kind: "text", text: buffer.toString("utf8").slice(0, 100_000) };
+    }
+    return {
+      kind: "unreadable",
+      reason: `.${ext} files cannot be read automatically — upload a PDF or TXT for a resume-based score`,
+    };
+  } catch {
+    return { kind: "unreadable", reason: "the file could not be read" };
+  }
+}
+
+/**
+ * Builds the Gemini request parts. A PDF resume is attached as inline data so
+ * the model reads the real document; text is inlined directly.
+ */
+function buildPromptParts(
+  payload: Record<string, unknown>,
+  resume: ResumeContent,
+): Record<string, unknown>[] {
+  const parts: Record<string, unknown>[] = [
+    {
+      text: `Analyse this student and return JSON only.\n\nProfile data:\n${JSON.stringify(payload)}`,
+    },
+  ];
+
+  if (resume.kind === "pdf") {
+    parts.push({
+      text: "\nTheir resume is attached. Base the resume, ATS, and technical scores on its actual contents.",
+    });
+    parts.push({
+      inlineData: { mimeType: "application/pdf", data: resume.base64 },
+    });
+  } else if (resume.kind === "text") {
+    parts.push({
+      text: `\nTheir resume text follows. Base the resume, ATS, and technical scores on its actual contents.\n\n--- RESUME ---\n${resume.text}\n--- END RESUME ---`,
+    });
+  } else {
+    parts.push({
+      text: `\nNote: their resume could not be read (${resume.reason}). Score the resume and ATS dimensions conservatively and say so in the summary.`,
+    });
+  }
+
+  return parts;
 }
 
 export const analyzeProfile = createServerFn({ method: "POST" })
@@ -74,27 +164,39 @@ export const analyzeProfile = createServerFn({ method: "POST" })
       .select("*")
       .eq("id", userId)
       .maybeSingle();
+
+    // The newest resume is the one analysed.
     const { data: resumes } = await supabase
       .from("resumes")
-      .select("file_name")
-      .eq("user_id", userId);
+      .select("file_name, file_path")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const resume = resumes?.[0];
+    if (!resume) {
+      throw new Error(
+        "Upload a resume before running an analysis — the score is based on it.",
+      );
+    }
+
+    const resumeContent = await readResume(supabase, resume.file_path);
 
     const userPayload = {
       profile: profile ?? {},
-      resumes: (resumes ?? []).map((r) => r.file_name),
+      resume_file: resume.file_name,
     };
 
-    // Without a key — or with AI switched off in the admin settings — the app
-    // still works, returning the neutral baseline from fallback() instead of a
-    // model-generated analysis.
     const { getServerSettings } = await import("./settings.server");
     const settings = await getServerSettings();
 
     const apiKey = process.env.GEMINI_API_KEY;
     let result: AIResult;
 
-    if (!apiKey || !settings.ai_enabled) {
-      result = fallback();
+    if (!apiKey) {
+      result = fallback("AI analysis is not configured (no GEMINI_API_KEY)");
+    } else if (!settings.ai_enabled) {
+      result = fallback("AI analysis has been turned off by an administrator");
     } else {
       try {
         const res = await fetch(
@@ -110,11 +212,7 @@ export const analyzeProfile = createServerFn({ method: "POST" })
               contents: [
                 {
                   role: "user",
-                  parts: [
-                    {
-                      text: `Analyze this student profile and return JSON only:\n${JSON.stringify(userPayload)}`,
-                    },
-                  ],
+                  parts: buildPromptParts(userPayload, resumeContent),
                 },
               ],
               generationConfig: { responseMimeType: "application/json" },
